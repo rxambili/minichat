@@ -1,0 +1,167 @@
+\author{XAMBILI Robin}
+\documentclass[11pt,a4paper]{article}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[latin1]{inputenc}
+\usepackage{lmodern}
+\usepackage[french]{algorithm2e}
+\usepackage[margin=2cm]{geometry}
+\usepackage{color}
+\newcommand{\me}{Equipe \textsc{SEC}}
+
+\newenvironment{algoo}{%
+    \hrule
+    \begin{algorithm}[H]
+    \DontPrintSemicolon
+    \SetKwSwitch{Suivant}{Cas}{Autre}{suivant}{faire}{cas où}{autres cas}{fincas}{}{}
+    \SetKwInput{Donnes}{Données}
+    \SetKwInput{Res}{Résultat}
+    \SetKwInput{Entree}{Entrées}
+    \SetKwInput{Sortie}{Sorties}
+    \SetKw{KwA}{Ã  }
+    \SetKw{Retour}{retourner}
+    \SetKwBlock{Deb}{début}{fin}
+    \SetKwBlock{Debs}{}{}
+    \SetKwBlock{Debu}{début}{}
+    \SetKw{Fin}{fin}
+    \SetKwIF{Si}{SinonSi}{Sinon}{si}{alors}{sinon si}{sinon}{finsi}
+    \SetKwFor{Tq}{tant que}{faire}{fintantque}
+    \SetKwFor{Pour}{pour}{faire}{finpour}
+    \SetKwRepeat{Repeter}{répéter}{jusqu'à  }
+}{%
+    \end{algorithm}
+    \hrule
+    \vspace{1em}
+}
+
+\title{ \textbf{SYSTÈME D'EXPLOITATION CENTRALISES :\\ RAPPORT PROJET MINICHAT }}
+\date{}
+
+\begin{document}
+
+\begin{titlepage}
+    \maketitle
+    \thispagestyle{empty}
+    \tableofcontents
+    \pagenumbering{arabic} % pour la numérotation 1, 1.1 ...
+\end{titlepage}  
+  
+\section{INTRODUCTION}
+
+	Le but de ce projet est de développer une application de messagerie interactive afin de mettre en oeuvre les notions de base vues en TD et TP, autour de l'interaction par tubes et par segments de mémoire partagée.
+	
+\section{ARCHITECTURE ET CHOIX DE CONCEPTION}
+	
+	\subsection{RENDU}
+	L'archive rendue contient :
+	\begin{itemize}
+		\item[] Le code final console.c, serveur.c, chatmmap.c
+		\item[] Le rapport du projet.
+	\end{itemize}
+	
+	\subsection{VERSION SERVEUR}
+		"Pour cette version, les messages échangés entre processus participants transitent par des tubes, selon le principe suivant :
+		\begin{itemize}
+		\item[-] un processus particulier, le serveur, centralise les messages émis par les participants, et les retransmet à chacun des participants. Le serveur est donc relié à chacun des participants par deux tubes :
+		? un tube du participant vers le serveur, par lequel le participant envoie les messages saisis
+		? un tube du serveur vers le participant, par lequel le participant reçoit les messages émis par le serveur
+		\item[-] les processus participants attendent des messages soit de l'entrée standard (auquel cas ils les retransmettent au serveur), soit du serveur (auquel cas ils actualisent la liste des derniers messages de la conversation, et en rafraîchissent l'affichage)
+		\item[-] un tube particulier, lu par le serveur, écrit par les participants, permet à un nouveau participant de s'enregistrer auprès du serveur, en fournissant son identité et celle de ses tubes de communication."
+		\end{itemize}
+
+		
+		\subsubsection{Connexions}
+			
+	Lorsqu'un client veut se connecter,il crée ses tubes d'entrée et de sortie puis il écrit son pseudo dans le tube "écoute", le serveur ouvre ensuite les tubes en "read only" et "write only" puis initialise le participants dans le tableau. Le client et le serveur doivent ouvrir les deux tubes dans le même ordre pour éviter un interblocage.
+	Le serveur ajoute un client seulement si le nombre de participants actifs est inférieur au nombre maximal de participants.
+	
+		\subsubsection{Déconnexions} 
+	Il y a deux cas de déconnexion pour un participants :
+		\begin{itemize}
+		\item[-] Il entre "au revoir" : dans ce cas le serveur le détecte, désactive le participant et  un message service aux autres participants. (Le client attend avant de fermer ses tubes (sleep(3)) pour éviter qu'il y ai un descripteur erroné dans le select du serveur)
+		\item[-] Un client de pseudo "fin" se connecte : dans ce cas le serveur, envoie un message service à tout les participants. Les participants détectent ce message et se déconnectent proprement. De la même façon le serveur attend avant de fermer ses tubes.
+		\end{itemize}
+	
+	
+		\subsubsection{Select + blocage}
+	
+	Comme les clients produisent peu, on utilise select() pour éviter de faire un read() bloquant. Ainsi, le select() bloque tant que aucun tube d'entrée n'est prêt à la lecture.
+	
+		\subsubsection{Réinitialisation des buffers}
+	
+	Pour éviter de transmettre des résidus de message, on vide les buffers avant chaque read() ou write().
+	
+		\subsubsection{Retour à la ligne après read() sur l'entrée standard}
+	
+	La lecture de la saisie retourne un retour à la ligne '$\backslash$n' en fin de chaîne, pour l'enlever on détecte la position de '$\backslash$n' à l'aide de strchr() puis on le remplace par '$\backslash$0'.
+	
+		
+	\subsection{VERSION TABLEAU BLANC}
+	"Dans cette version, les messages sont directement écrits par les participants dans un segment de mémoire partagée, sans transiter par un serveur intermédiaire. Tous les processus sont donc similaires."
+		\subsubsection{Connexions}
+	Lorsqu'un client se connecte, on envoie le message service dans la mémoire partagée et on initialise dernier0 (le numéro du dernier message) comme le numéro du dernier message de la discussion.
+	
+		\subsubsection{Déconnexions}
+	Lorsqu'un client entre "au revoir", on quitte la boucle principale et on envoie le message service dans la mémoire partagée.
+	
+		\subsubsection{Mise à jour de l'affichage}
+	On définit un traitant pour le signal SIGUSR1 qui va affiche la discussion et mets a jour dernier0 si le dernier message de discussion a un numéro plus grand que dernier0.
+	Afin de pouvoir mettre à jour l'affichage à chaque nouveau message et pas seulement à l'envoi d'un message, on passe la lecture sur l'entrée standard en mode non-bloquant à l'aide de fcntl() et on envoi le signal SIGUSR1 à chaque passage de boucle.	
+	
+		\subsubsection{Envoi de message}
+	On ajoute un procédure envoyer(struct message) qui permet d'envoyer et message dans la mémoire partagée. Pour chaque message ajoutée, on réorganise la discussion en décalant chaque message d'un indice. Ensuite on provoque l'affichage en envoyant le signal SIGUSR1.
+	
+		\subsubsection{Retour à la ligne après read() sur l'entrée standard}
+	On rencontre le même problème que dans la version serveur et on le résout de la même façon.
+	
+	\subsection{COMPARAISON DES VERSIONS}
+		\subsubsection{Avantages et désavantages de la version serveur}
+			Avantages :
+		\begin{itemize}
+			\item[+] Gestion des informations de la discussion simplifiée (nombre de participants, ...)
+			\item[+] Possibilité de déconnecter un participant et de mettre fin à la discussion depuis le serveur
+		\end{itemize}
+			Désavantages :
+		\begin{itemize}
+			\item[-] Besoin d'un processus supplémentaire, le serveur doit être actif
+			\item[-] Nécessite d'ouvrir deux tubes nommés par participants : beaucoup de ressources réservées 
+			\item[-] Nombre de participants limité
+		\end{itemize}
+		
+		\subsubsection{Avantages et désavantages de la version tableau blanc}
+			Avantages :
+		\begin{itemize}
+			\item[+] Moins de ressources réservées
+			\item[+] Possibilité de continuer une discussion arrêtée
+			\item[+] Les processus sont similaires
+			\item[+] Pas de limite de participants
+		\end{itemize}
+			Désavantages :
+		\begin{itemize}
+			\item[-] Nécessite de faire passer plus d'informations dans les messages (Ex: numéro d'ordre)
+			\item[-] Le nombre de participants ne peut pas être limité, seul les participants gèrent les connexions/déconnexions
+		\end{itemize}
+\section{MÉTHODOLOGIE DE TEST}	
+	
+	\subsection{Connexions}
+	On connecte un client et on regarde si les autres participants reçoivent bien le message de service et s'ils ne sont pas déconnectés. Dans le cas de la version serveur on vérifie que le serveur ne se bloque pas.
+	De plus, dans le cas du serveur, on vérifie qu'on ne puisse pas connecter plus de participants que le maximum autorisé et que la demande soit bien prise en compte lorsqu'un client se déconnecte.
+	
+	\subsection{Déconnexions}
+	On déconnecte un client et on regarde si les autres participants reçoivent bien le message de service et s'ils ne sont pas déconnectés. Dans le cas de la version serveur on vérifie que le serveur ne se bloque pas. On vérifie si le processus se termine bien.
+	Dans le cas de la version serveur, on vérifie que la déconnexion de tous les participants ne provoque pas de blocage et si la reconnexion est toujours possible. De plus, on regarde si la fin du serveur provoque bien la fin de tous les clients.
+	
+	\subsection{Envoi de message}
+	On envoi plusieurs messages avec différents clients et on regarde si ils s'affichent bien pour tout les participants à la discussion. On vérifie aussi si les messages sont bien préfixé du bon pseudo.
+	
+	\subsection{Taille des messages}
+	On essaie d'envoyer un message dépassant la taille limite et on regarde si le message est bien couper et si le message suivant possède la fin du message précédent.
+	
+	
+	\subsection{Nombre de participants}
+	On vérifie si le serveur affiche le bon nombre de participants actifs.	
+	
+\section{CONCLUSION}
+	Ce projet m'a permis de mettre en pratique des notions vus en TP/TD et donc de mieux les comprendre. La version serveur m'a posé plus de difficultés que la version tableau blanc. Une estimation du temps de travail serait : 8h sur la version serveur, 3h sur la version tableau blanc et 2h30 sur le rapport.
+	
+\end{document}

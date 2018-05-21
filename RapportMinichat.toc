@@ -1,0 +1,26 @@
+\select@language {french}
+\contentsline {section}{\numberline {1}INTRODUCTION}{1}
+\contentsline {section}{\numberline {2}ARCHITECTURE ET CHOIX DE CONCEPTION}{1}
+\contentsline {subsection}{\numberline {2.1}RENDU}{1}
+\contentsline {subsection}{\numberline {2.2}VERSION SERVEUR}{1}
+\contentsline {subsubsection}{\numberline {2.2.1}Connexions}{1}
+\contentsline {subsubsection}{\numberline {2.2.2}D\'econnexions}{1}
+\contentsline {subsubsection}{\numberline {2.2.3}Select + blocage}{1}
+\contentsline {subsubsection}{\numberline {2.2.4}R\'einitialisation des buffers}{2}
+\contentsline {subsubsection}{\numberline {2.2.5}Retour \`a la ligne apr\`es read() sur l'entr\'ee standard}{2}
+\contentsline {subsection}{\numberline {2.3}VERSION TABLEAU BLANC}{2}
+\contentsline {subsubsection}{\numberline {2.3.1}Connexions}{2}
+\contentsline {subsubsection}{\numberline {2.3.2}D\'econnexions}{2}
+\contentsline {subsubsection}{\numberline {2.3.3}Mise \`a jour de l'affichage}{2}
+\contentsline {subsubsection}{\numberline {2.3.4}Envoi de message}{2}
+\contentsline {subsubsection}{\numberline {2.3.5}Retour \`a la ligne apr\`es read() sur l'entr\'ee standard}{2}
+\contentsline {subsection}{\numberline {2.4}COMPARAISON DES VERSIONS}{2}
+\contentsline {subsubsection}{\numberline {2.4.1}Avantages et d\'esavantages de la version serveur}{2}
+\contentsline {subsubsection}{\numberline {2.4.2}Avantages et d\'esavantages de la version tableau blanc}{3}
+\contentsline {section}{\numberline {3}M\'ETHODOLOGIE DE TEST}{3}
+\contentsline {subsection}{\numberline {3.1}Connexions}{3}
+\contentsline {subsection}{\numberline {3.2}D\'econnexions}{3}
+\contentsline {subsection}{\numberline {3.3}Envoi de message}{3}
+\contentsline {subsection}{\numberline {3.4}Taille des messages}{3}
+\contentsline {subsection}{\numberline {3.5}Nombre de participants}{3}
+\contentsline {section}{\numberline {4}CONCLUSION}{3}
